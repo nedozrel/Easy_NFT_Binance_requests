@@ -12,7 +12,6 @@ from seleniumwire import webdriver as wire_webdriver
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options as chrome_options
-from selenium import webdriver
 import requests
 
 
@@ -191,7 +190,6 @@ def main():
     except FileNotFoundError as e:
         wire_options = {}
     driver = wire_webdriver.Chrome(options=options, seleniumwire_options=wire_options)
-    driver.get('https://2ip.ru/')
     driver.get("https://www.binance.com/")
     print('Проверка авторизации...')
     load_cookies(driver)
