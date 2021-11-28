@@ -25,6 +25,9 @@ def log_uncaught_exceptions(ex_cls, ex, tb):
     sys.exit()
 
 
+sys.excepthook = log_uncaught_exceptions
+
+
 def save_cookies(driver):
     with open('data/cookies.json', 'w') as file:
         json.dump(driver.get_cookies(), file)
@@ -86,14 +89,13 @@ def sale_page(driver):
     input_sum.click()
     input_sum.clear()
     input_sum.send_keys(5)
-    driver.get_screenshot_as_file('data/screenshots/test4.png')
 
     time.sleep(5)
-    driver.find_element(By.XPATH, '/html/body/div[1]/div/div[2]/main/div/div/div[8]/button[2]').click()
+    driver.find_element(By.CSS_SELECTOR, 'button.css-1cep8r6').click()
 
 
 def click_confirm(driver):
-    confirm = WebDriverWait(driver=driver, timeout=10, poll_frequency=0.0000000000000000001).until(
+    confirm = WebDriverWait(driver=driver, timeout=100, poll_frequency=0.0000000000000000001).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, 'button.css-ogdw8t'))
     )
     ActionChains(driver).move_to_element(confirm).click().perform()
@@ -149,11 +151,11 @@ def check_exists_by_xpath(driver, path):
     return True
 
 
-def start_session(headers, requests_number, js):
+def start_session(headers, requests_number, js, proxy):
     req_results = []
 
     async def send_req(session, url):
-        async with session.post(url, data=json.dumps(js), ssl=False) as resp:
+        async with session.post(url, data=json.dumps(js), ssl=False, proxy=proxy) as resp:
             resp_json = await resp.json()
             req_results.append(resp_json)
 
@@ -169,11 +171,22 @@ def start_session(headers, requests_number, js):
     return req_results
 
 
+def get_result(results):
+    success = False
+    for result in results:
+        success = result.get('success')
+        if success:
+            print(result)
+            break
+    return success
+
+
 def main():
-    requests_number = int(input('Введите количество запросов: '))
+    product_id = int(input('Введите product id: '))
     sale_time = int(input('Введите время начала отправки запросов в формате unix: '))
     nft_amount = int(input('Введите количество NFT для покупки: '))
-    product_id = int(input('Введите product id: '))
+    requests_number = int(input('Введите количество запросов: '))
+
     js = {"number": nft_amount, "productId": product_id}
     print('Загрузка браузера...')
     options = chrome_options()
@@ -182,12 +195,15 @@ def main():
         with open('data/proxy.txt', 'r') as file:
             proxy = file.read()
         if proxy:
+            proxy = 'https://' + proxy
             wire_options = {
-                'proxy': {'https': 'https://' + proxy}
+                'proxy': {'https': proxy}
             }
         else:
+            proxy = None
             wire_options = {}
     except FileNotFoundError as e:
+        proxy = None
         wire_options = {}
     driver = wire_webdriver.Chrome(options=options, seleniumwire_options=wire_options)
     driver.get("https://www.binance.com/")
@@ -207,22 +223,17 @@ def main():
         if sale_time < ts:
             req_headers = click_confirm(driver)
             print('Начало отправки запросов...')
-            results = start_session(req_headers, requests_number, js)
+            results = start_session(req_headers, requests_number, js, proxy)
             print('Конец отправки запросов...')
             break
 
     print('Проверка результата...')
-    success = False
-    for result in results:
-        success = result.get('success')
-        if success:
-            print(result)
-            break
+    success = get_result(results)
     print('Удалось :)' if success else 'Не удалось :(')
+    input('Нажмите Enter для завершения работы.')
 
 
 if __name__ == '__main__':
-    sys.excepthook = log_uncaught_exceptions
     with open('data/personal_key.txt', 'r') as f:
         key = f.read()
     if key:
