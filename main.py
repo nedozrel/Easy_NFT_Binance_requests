@@ -65,9 +65,10 @@ def check_auth(driver, timeout=5):
 def do_auth(driver):
     print('Ожидание авторизации...')
     driver.get('https://accounts.binance.com/ru/login')
-    WebDriverWait(driver=driver, timeout=600, poll_frequency=1) \
+    WebDriverWait(driver=driver, timeout=6000, poll_frequency=1) \
         .until(EC.any_of(EC.visibility_of_element_located((By.CSS_SELECTOR, '#__APP > div > header > div:nth-child(4) > div > svg > use')),
                          EC.visibility_of_element_located((By.CSS_SELECTOR, 'svg.css-6px2js'))))
+    print('Авторизация прошла успешно!')
     save_cookies(driver)
 
 
