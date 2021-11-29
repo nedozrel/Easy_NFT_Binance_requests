@@ -156,7 +156,7 @@ def start_session(headers, requests_number, js, proxy):
 
     async def send_req(session, url):
         async with session.post(url, data=json.dumps(js), ssl=False, proxy=proxy) as resp:
-            resp_json = await resp.json()
+            resp_json = await resp.text()
             req_results.append(resp_json)
 
     async def send_purchase_requests():
@@ -172,12 +172,13 @@ def start_session(headers, requests_number, js, proxy):
 
 
 def get_result(results):
-    success = False
-    for result in results:
-        success = result.get('success')
-        if success:
-            print(result)
-            break
+    with open('data/requests_result.txt', 'w') as f:
+        success = False
+        for result in results:
+            f.write(result + '\n')
+            check_success = result.lower().replace(' ', '')
+            check_success = check_success.find("'success':true") != -1 or check_success.find('"success":true') != -1
+            success += check_success
     return success
 
 
@@ -186,7 +187,6 @@ def main():
     sale_time = int(input('Введите время начала отправки запросов в формате unix: '))
     nft_amount = int(input('Введите количество NFT для покупки: '))
     requests_number = int(input('Введите количество запросов: '))
-
     js = {"number": nft_amount, "productId": product_id}
     print('Загрузка браузера...')
     options = chrome_options()
@@ -229,7 +229,7 @@ def main():
 
     print('Проверка результата...')
     success = get_result(results)
-    print('Удалось :)' if success else 'Не удалось :(')
+    print(f'Количество успешных запросов - {success} :)' if success else 'Не удалось :(')
     input('Нажмите Enter для завершения работы.')
 
 
