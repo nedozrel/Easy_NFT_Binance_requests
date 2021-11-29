@@ -172,7 +172,7 @@ def start_session(headers, requests_number, js, proxy):
 
 
 def get_result(results):
-    with open('data/requests_result.txt', 'w') as f:
+    with open('data/requests_result.txt', 'w', encoding='utf-8') as f:
         success = False
         for result in results:
             f.write(result + '\n')
