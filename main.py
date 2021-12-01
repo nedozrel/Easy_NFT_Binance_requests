@@ -102,7 +102,8 @@ def click_confirm(driver):
     ActionChains(driver).move_to_element(confirm).click().perform()
     print('Нажали confirm')
 
-    request = driver.wait_for_request('https://www.binance.com/bapi/nft/v1/private/nft/nft-trade/product-onsale')
+    request = driver.wait_for_request('https://www.binance.com/bapi/nft/v1/private/nft/nft-trade/product-onsale',
+                                      timeout=60)
 
     cookies = request.headers['cookie']
     csrftoken = request.headers['csrftoken']
@@ -152,34 +153,36 @@ def check_exists_by_xpath(driver, path):
     return True
 
 
-def start_session(headers, requests_number, js, proxy):
+def send_purchase_requests(headers, requests_number, js):
+    url = 'https://www.binance.com/bapi/nft/v1/private/nft/mystery-box/purchase'
     req_results = []
 
-    async def send_req(session, url):
-        async with session.post(url, data=json.dumps(js), ssl=False, proxy=proxy) as resp:
-            resp_json = await resp.text()
-            req_results.append(resp_json)
-
-    async def send_purchase_requests():
+    async def start_session():
         async with aiohttp.ClientSession(headers=headers) as session:
-            tasks = []
-            for i in range(requests_number):
-                task = asyncio.create_task(
-                    send_req(session, 'https://www.binance.com/bapi/nft/v1/private/nft/mystery-box/purchase'))
-                tasks.append(task)
-            await asyncio.gather(*tasks)
-    asyncio.get_event_loop().run_until_complete(send_purchase_requests())
+            tasks = [
+                asyncio.create_task(
+                    session.post(url, data=json.dumps(js), ssl=False)
+                ) for i in range(requests_number)
+            ]
+            responses = await asyncio.gather(*tasks)
+            for response in responses:
+                req_results.append(
+                    await response.json() if response.content_type == 'application/json' else await response.text()
+                )
+
+    asyncio.get_event_loop_policy().get_event_loop().run_until_complete(start_session())
     return req_results
 
 
 def get_result(results):
-    with open('data/requests_result.txt', 'w', encoding='utf-8') as f:
-        success = False
-        for result in results:
-            f.write(result + '\n')
-            check_success = result.lower().replace(' ', '')
-            check_success = check_success.find("'success':true") != -1 or check_success.find('"success":true') != -1
-            success += check_success
+    success = False
+    for r in results:
+        if type(r) == dict:
+            success = r.get('success')
+        if len(r) > 250:
+            print('blocked')
+        else:
+            print(r)
     return success
 
 
@@ -192,21 +195,7 @@ def main():
     print('Загрузка браузера...')
     options = chrome_options()
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    try:
-        with open('data/proxy.txt', 'r') as file:
-            proxy = file.read()
-        if proxy:
-            proxy = 'https://' + proxy
-            wire_options = {
-                'proxy': {'https': proxy}
-            }
-        else:
-            proxy = None
-            wire_options = {}
-    except FileNotFoundError as e:
-        proxy = None
-        wire_options = {}
-    driver = wire_webdriver.Chrome(options=options, seleniumwire_options=wire_options)
+    driver = wire_webdriver.Chrome(options=options)
     driver.get("https://www.binance.com/")
     print('Проверка авторизации...')
     load_cookies(driver)
@@ -219,18 +208,22 @@ def main():
         driver.refresh()
     sale_page(driver)
     print('Ожидание дропа...')
+    confirm_clicked = False
+    req_headers = {}
     while True:
         ts = time.time()
-        if sale_time < ts:
+        if not confirm_clicked and sale_time - ts < 8:
             req_headers = click_confirm(driver)
+            confirm_clicked = True
+        if sale_time < ts:
             print('Начало отправки запросов...')
-            results = start_session(req_headers, requests_number, js, proxy)
+            results = send_purchase_requests(req_headers, requests_number, js)
             print('Конец отправки запросов...')
             break
 
     print('Проверка результата...')
     success = get_result(results)
-    print(f'Количество успешных запросов - {success} :)' if success else 'Не удалось :(')
+    print(f'Удалось :)' if success else 'Не удалось :(')
     input('Нажмите Enter для завершения работы.')
 
 
