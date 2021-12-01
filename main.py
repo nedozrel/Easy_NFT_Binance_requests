@@ -178,7 +178,8 @@ def get_result(results):
     success = False
     for r in results:
         if type(r) == dict:
-            success = r.get('success')
+            if r.get('success'):
+                success = r.get('success')
         if len(r) > 250:
             print('blocked')
         else:
@@ -223,7 +224,7 @@ def main():
 
     print('Проверка результата...')
     success = get_result(results)
-    print(f'Удалось :)' if success else 'Не удалось :(')
+    print('Удалось :)' if success else 'Не удалось :(')
     input('Нажмите Enter для завершения работы.')
 
 
