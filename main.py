@@ -28,6 +28,30 @@ def log_uncaught_exceptions(ex_cls, ex, tb):
 sys.excepthook = log_uncaught_exceptions
 
 
+def get_proxy():
+    try:
+        with open('data/proxy.txt', 'r') as f:
+            proxy = f.read()
+        if proxy:
+            return proxy
+        else:
+            return None
+    except FileNotFoundError:
+        return None
+
+
+def get_seleniumwire_options(proxy):
+    if proxy is not None:
+        return {
+            'proxy': {
+                'http': f'http://{proxy}',
+                'https': f'http://{proxy}'
+            }
+        }
+    else:
+        return None
+
+
 def save_cookies(driver):
     with open('data/cookies.json', 'w') as file:
         json.dump(driver.get_cookies(), file)
@@ -153,7 +177,7 @@ def check_exists_by_xpath(driver, path):
     return True
 
 
-def send_purchase_requests(headers, requests_number, js):
+def send_purchase_requests(headers, requests_number, js, proxy):
     url = 'https://www.binance.com/bapi/nft/v1/private/nft/mystery-box/purchase'
     req_results = []
 
@@ -161,7 +185,7 @@ def send_purchase_requests(headers, requests_number, js):
         async with aiohttp.ClientSession(headers=headers) as session:
             tasks = [
                 asyncio.create_task(
-                    session.post(url, data=json.dumps(js), ssl=False)
+                    session.post(url, data=json.dumps(js), ssl=False, proxy=proxy)
                 ) for i in range(requests_number)
             ]
             responses = await asyncio.gather(*tasks)
@@ -176,14 +200,15 @@ def send_purchase_requests(headers, requests_number, js):
 
 def get_result(results):
     success = False
-    for r in results:
-        if type(r) == dict:
-            if r.get('success'):
-                success = r.get('success')
-        if len(r) > 250:
-            print('blocked')
-        else:
-            print(r)
+    with open('data/requests_result.txt', 'w', encoding='utf-8') as f:
+        for r in results:
+            if type(r) == dict:
+                if r.get('success'):
+                    success = r.get('success')
+            if len(r) > 250:
+                print('blocked', file=f)
+            else:
+                print(r, file=f)
     return success
 
 
@@ -193,17 +218,22 @@ def main():
     nft_amount = int(input('Введите количество NFT для покупки: '))
     requests_number = int(input('Введите количество запросов: '))
     js = {"number": nft_amount, "productId": product_id}
+    proxy = get_proxy()
+    seleniumwire_options = get_seleniumwire_options(proxy)
+    proxy = f'http://{proxy}' if proxy is not None else None
+
     print('Загрузка браузера...')
     options = chrome_options()
     options.add_experimental_option('excludeSwitches', ['enable-logging'])
-    driver = wire_webdriver.Chrome(options=options)
+    driver = wire_webdriver.Chrome(options=options, seleniumwire_options=seleniumwire_options)
     driver.get("https://www.binance.com/")
     print('Проверка авторизации...')
     load_cookies(driver)
     driver.refresh()
-    authenticated = check_auth(driver, timeout=5)
+    authenticated = check_auth(driver, timeout=10)
     print('Вы авторизованы!' if authenticated else 'Вы не авторизованы!')
     if not authenticated:
+        driver.delete_all_cookies()
         do_auth(driver)
         load_cookies(driver)
         driver.refresh()
@@ -218,7 +248,7 @@ def main():
             confirm_clicked = True
         if sale_time < ts:
             print('Начало отправки запросов...')
-            results = send_purchase_requests(req_headers, requests_number, js)
+            results = send_purchase_requests(req_headers, requests_number, js, proxy)
             print('Конец отправки запросов...')
             break
 
@@ -229,11 +259,11 @@ def main():
 
 
 if __name__ == '__main__':
-    with open('data/personal_key.txt', 'r') as f:
-        key = f.read()
+    with open('data/personal_key.txt', 'r') as file:
+        key = file.read()
     if key:
-        r = requests.get(f'https://snkrs.na4u.ru/{key.strip()}:binance_nft_bot')
-        if r.text == 'yes':
+        req = requests.get(f'https://snkrs.na4u.ru/{key.strip()}:binance_nft_bot')
+        if req.text == 'yes':
             main()
         else:
             input('Проверьте правильность введеного ключа!')
