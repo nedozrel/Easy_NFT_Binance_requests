@@ -101,8 +101,8 @@ def sale_page(driver):
     driver.get(url)
 
     # Нажатие на кнопку соглашения с условиями бинанса
-    btn = WebDriverWait(driver=driver, timeout=20, poll_frequency=0.000000001).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.css-1mtehst'))
+    btn = WebDriverWait(driver=driver, timeout=60, poll_frequency=0.000000001).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.css-qzf033'))
     )
     btn.click()
 
@@ -116,12 +116,12 @@ def sale_page(driver):
     input_sum.send_keys(5)
 
     time.sleep(5)
-    driver.find_element(By.CSS_SELECTOR, 'button.css-1cep8r6').click()
+    driver.find_element(By.CSS_SELECTOR, 'button.css-19xplxv').click()
 
 
 def click_confirm(driver):
     confirm = WebDriverWait(driver=driver, timeout=100, poll_frequency=0.0000000000000000001).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, 'button.css-ogdw8t'))
+        EC.presence_of_element_located((By.CSS_SELECTOR, 'button.css-mh5cnv'))
     )
     ActionChains(driver).move_to_element(confirm).click().perform()
     print('Нажали confirm')
