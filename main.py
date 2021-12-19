@@ -97,23 +97,50 @@ def do_auth(driver):
 
 
 def sale_page(driver):
-    url = 'https://www.binance.com/ru/nft/goods/sale/14571476255560?isBlindBox=1&isOpen=false'
+    url = 'https://www.binance.com/ru/nft/balance?tab=boxes'
     driver.get(url)
 
-    # Нажатие на кнопку соглашения с условиями бинанса
-    btn = WebDriverWait(driver=driver, timeout=60, poll_frequency=0.000000001).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.css-qzf033'))
-    )
-    btn.click()
+    # Выбор первого нфт в инвентаре на продажу
+    try:
+        first_nft_for_sale = WebDriverWait(driver=driver, timeout=10, poll_frequency=0.000000001).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div[2]/div/div[3]'
+                           '/div/div/div/div[2]/div[2]/div/div/div[2]/div/div[1]'))
+        )
+        first_nft_for_sale.click()
+    except TimeoutException:
+        input('У вас нет НФТ в инвентаре, чтобы обойти капчу у вас должен быть хотя бы 1 НФТ! '
+              'Нажмите Enter для завершения работы программы.')
+        quit()
 
-    input_sum = WebDriverWait(driver=driver, timeout=60, poll_frequency=0.1).until(
+    # Нажатие на кнопку соглашения с условиями бинанса
+    try:
+        btn = WebDriverWait(driver=driver, timeout=10, poll_frequency=0.000000001).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.css-qzf033'))
+        )
+        time.sleep(2)
+        btn.click()
+    except TimeoutException:
+        pass
+
+    sell_btn = WebDriverWait(driver=driver, timeout=10, poll_frequency=0.000000001).until(
+            EC.element_to_be_clickable(
+                (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div[2]'
+                           '/div[1]/div[2]/div[3]/div[2]/div/button[2]'))
+        )
+    sell_btn.click()
+
+    cost_placeholder = WebDriverWait(driver=driver, timeout=60, poll_frequency=0.1).until(
         EC.element_to_be_clickable(
             (By.XPATH, '/html/body/div[1]/div/div[2]/main/div/div/div[5]/div[2]/div/div[1]/input')
         )
     )
-    input_sum.click()
-    input_sum.clear()
-    input_sum.send_keys(5)
+    input_cost = ActionChains(driver)
+    input_cost.move_to_element(cost_placeholder)
+    input_cost.click()
+    input_cost.perform()
+    input_cost.send_keys_to_element(cost_placeholder, 500)
+    input_cost.perform()
 
     time.sleep(5)
     driver.find_element(By.CSS_SELECTOR, 'button.css-19xplxv').click()
@@ -243,7 +270,7 @@ def main():
     req_headers = {}
     while True:
         ts = time.time()
-        if not confirm_clicked and sale_time - ts < 8:
+        if not confirm_clicked and sale_time - ts < 13:
             req_headers = click_confirm(driver)
             confirm_clicked = True
         if sale_time < ts:
