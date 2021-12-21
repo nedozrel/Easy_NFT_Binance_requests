@@ -97,19 +97,19 @@ def do_auth(driver):
 
 
 def sale_page(driver):
-    url = 'https://www.binance.com/ru/nft/balance?tab=boxes'
+    url = 'https://www.binance.com/ru/nft/balance?tab=nft'
     driver.get(url)
 
     # Выбор первого нфт в инвентаре на продажу
     try:
         first_nft_for_sale = WebDriverWait(driver=driver, timeout=10, poll_frequency=0.000000001).until(
             EC.element_to_be_clickable(
-                (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div[2]/div/div[3]'
-                           '/div/div/div/div[2]/div[2]/div/div/div[2]/div/div[1]'))
+                (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div[2]/div/div[2]/div/div'
+                           '/div/div[2]/div[2]/div/div/div/div[1]/div/div[1]/div/div'))
         )
         first_nft_for_sale.click()
     except TimeoutException:
-        input('У вас нет НФТ в инвентаре, чтобы обойти капчу у вас должен быть хотя бы 1 НФТ! '
+        input('У вас нет НФТ в инвентаре, чтобы обойти капчу у вас должен быть хотя бы 1 НФТ!\n'
               'Нажмите Enter для завершения работы программы.')
         quit()
 
@@ -125,14 +125,14 @@ def sale_page(driver):
 
     sell_btn = WebDriverWait(driver=driver, timeout=10, poll_frequency=0.000000001).until(
             EC.element_to_be_clickable(
-                (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div[2]'
-                           '/div[1]/div[2]/div[3]/div[2]/div/button[2]'))
+                (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div'
+                           '/div[2]/div/div[1]/div[5]/div/button[1]'))
         )
     sell_btn.click()
 
     cost_placeholder = WebDriverWait(driver=driver, timeout=60, poll_frequency=0.1).until(
         EC.element_to_be_clickable(
-            (By.XPATH, '/html/body/div[1]/div/div[2]/main/div/div/div[5]/div[2]/div/div[1]/input')
+            (By.XPATH, '//*[@id="__APP"]/div/div[2]/main/div/div/div[4]/div[2]/div/div[1]/input')
         )
     )
     input_cost = ActionChains(driver)
